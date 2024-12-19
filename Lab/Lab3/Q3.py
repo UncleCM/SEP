@@ -81,7 +81,7 @@ class Phone(QMainWindow):
         self.ui.num.setText(self.num)
 
     def talk(self):
-        self.ui.num.setText("Dialling: " + self.num)
+        self.ui.num.setText("Dialling:` " + self.num)
 
 
 
