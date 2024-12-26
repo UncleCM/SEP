@@ -1,68 +1,91 @@
-# -*- coding: utf-8 -*-
+import sys
+from PySide6.QtWidgets import *
 
-################################################################################
-## Form generated from reading UI file 'Q1.ui'
-##
-## Created by: Qt User Interface Compiler version 6.8.0
-##
-## WARNING! All changes made in this file will be lost when recompiling UI file!
-################################################################################
+class BasicBankingSystem(QWidget):
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle('Basic Banking System')
+        self.setGeometry(100, 100, 400, 200)
 
-from PySide6.QtCore import (QCoreApplication, QDate, QDateTime, QLocale,
-    QMetaObject, QObject, QPoint, QRect,
-    QSize, QTime, QUrl, Qt)
-from PySide6.QtGui import (QBrush, QColor, QConicalGradient, QCursor,
-    QFont, QFontDatabase, QGradient, QIcon,
-    QImage, QKeySequence, QLinearGradient, QPainter,
-    QPalette, QPixmap, QRadialGradient, QTransform)
-from PySide6.QtWidgets import (QApplication, QDialog, QLabel, QLineEdit,
-    QListWidget, QListWidgetItem, QPushButton, QSizePolicy,
-    QWidget)
+        self.balance = 0
 
-class Ui_Dialog(object):
-    def setupUi(self, Dialog):
-        if not Dialog.objectName():
-            Dialog.setObjectName(u"Dialog")
-        Dialog.resize(640, 615)
-        self.Todolist = QLabel(Dialog)
-        self.Todolist.setObjectName(u"Todolist")
-        self.Todolist.setGeometry(QRect(260, 20, 111, 41))
-        font = QFont()
-        font.setPointSize(15)
-        self.Todolist.setFont(font)
-        self.Add_btn = QPushButton(Dialog)
-        self.Add_btn.setObjectName(u"Add_btn")
-        self.Add_btn.setGeometry(QRect(500, 70, 93, 29))
-        self.Add_btn.setStyleSheet(u"background-color: rgb(32, 255, 58)")
-        self.MarkComplete_btn = QPushButton(Dialog)
-        self.MarkComplete_btn.setObjectName(u"MarkComplete_btn")
-        self.MarkComplete_btn.setGeometry(QRect(40, 510, 171, 41))
-        self.MarkComplete_btn.setStyleSheet(u"Background-color:rgb(34, 226, 255)")
-        self.List_Output = QListWidget(Dialog)
-        self.List_Output.setObjectName(u"List_Output")
-        self.List_Output.setGeometry(QRect(40, 130, 551, 351))
-        self.Clear_btn = QPushButton(Dialog)
-        self.Clear_btn.setObjectName(u"Clear_btn")
-        self.Clear_btn.setGeometry(QRect(420, 510, 171, 41))
-        self.Delete_btn = QPushButton(Dialog)
-        self.Delete_btn.setObjectName(u"Delete_btn")
-        self.Delete_btn.setGeometry(QRect(230, 510, 171, 41))
-        self.Delete_btn.setStyleSheet(u"background-color:rgb(255, 25, 29)")
-        self.Input = QLineEdit(Dialog)
-        self.Input.setObjectName(u"Input")
-        self.Input.setGeometry(QRect(50, 70, 421, 31))
+        vbox = QVBoxLayout()
+        self.label = QLabel(self)
+        self.label.setText("Welcome to Basic Banking System")
+        vbox.addWidget(self.label)
 
-        self.retranslateUi(Dialog)
+        self.check_balance = QPushButton('Check Balance', self)
+        self.check_balance.clicked.connect(self.open_balance_window)
 
-        QMetaObject.connectSlotsByName(Dialog)
-    # setupUi
+        self.transaction = QPushButton('Make Transaction', self)
+        self.transaction.clicked.connect(self.open_transaction_window)
 
-    def retranslateUi(self, Dialog):
-        Dialog.setWindowTitle(QCoreApplication.translate("Dialog", u"Dialog", None))
-        self.Todolist.setText(QCoreApplication.translate("Dialog", u"To do list", None))
-        self.Add_btn.setText(QCoreApplication.translate("Dialog", u"Add Task", None))
-        self.MarkComplete_btn.setText(QCoreApplication.translate("Dialog", u"MarkComplete", None))
-        self.Clear_btn.setText(QCoreApplication.translate("Dialog", u"Clear All", None))
-        self.Delete_btn.setText(QCoreApplication.translate("Dialog", u"Delete Task", None))
-    # retranslateUi
 
+        vbox.addWidget(self.check_balance)
+        vbox.addWidget(self.transaction)
+
+        self.setLayout(vbox)
+        self.show()    
+
+
+    def open_balance_window(self):
+        dilog = QDialog(self)
+        dilog.setWindowTitle("Check Balance")
+        layout = QVBoxLayout()
+        label = QLabel(self)
+        label.setText(f"Current Balance: ${self.balance:.2f}")
+        layout.addWidget(label)
+        close_bth = QPushButton('Close', self)
+        close_bth.clicked.connect(dilog.close)
+        layout.addWidget(close_bth)
+        dilog.setLayout(layout)
+        dilog.show()
+
+    def open_transaction_window(self):
+        dilog = QDialog(self)
+        dilog.setWindowTitle("Make Transaction")
+        layout = QVBoxLayout()
+        label = QLabel(self)
+        label.setText("Enter amount to deposit or withdraw:")
+        layout.addWidget(label)
+        self.amount_entry = QLineEdit(self)
+        layout.addWidget(self.amount_entry)
+        deposit_btn = QPushButton('Deposit', self)
+        deposit_btn.clicked.connect(self.deposit)
+        layout.addWidget(deposit_btn)
+        withdraw_btn = QPushButton('Withdraw', self)
+        withdraw_btn.clicked.connect(self.withdraw)
+        layout.addWidget(withdraw_btn)
+        close_bth = QPushButton('Close', self)
+        close_bth.clicked.connect(dilog.close)
+        layout.addWidget(close_bth)
+        self.status_label = QLabel(self)
+        layout.addWidget(self.status_label)
+        dilog.setLayout(layout)
+        dilog.show()
+
+    def deposit(self):
+        try:
+            amount = float(self.amount_entry.text())
+            self.balance += amount
+            self.amount_entry.clear()
+            self.status_label.setText(f"Deposited ${amount:.2f}")
+        except:
+            self.status_label.setText("Invalid amount")
+
+    def withdraw(self):
+        try:
+            amount = float(self.amount_entry.text())
+            if amount > self.balance:
+                self.status_label.setText("Insufficient balance")
+            else:
+                self.balance -= amount
+                self.amount_entry.clear()
+                self.status_label.setText(f"Withdrew ${amount:.2f}")
+        except:
+            self.status_label.setText("Invalid amount")
+
+if __name__ == "__main__":
+    app = QApplication(sys.argv)
+    w = BasicBankingSystem()
+    sys.exit(app.exec())
