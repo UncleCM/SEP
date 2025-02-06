@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PyScript To-Do & Animation</title>
+    <link rel="stylesheet" href="https://pyscript.net/releases/2024.11.1/core.css">
+    <script type="module" src="https://pyscript.net/releases/2024.11.1/core.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+        }
+
+        h1 {
+            background-color: #333;
+            color: white;
+            padding: 10px;
+            margin: 0;
+        }
+
+        #main-container {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            padding: 20px;
+        }
+
+        .widget-container {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2);
+            margin: 15px;
+            padding: 15px;
+            width: 320px;
+            text-align: center;
+        }
+
+        img {
+            width: 100%;
+            border-radius: 8px;
+        }
+
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 10px;
+            border-radius: 5px;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        input {
+            width: 80%;
+            padding: 8px;
+            margin: 5px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+
+        ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        li {
+            background: #ddd;
+            padding: 8px;
+            margin: 5px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>PyScript GUI App</h1>
+    <div id="main-container">
+        <div id="animation-container" class="widget-container"></div>
+        <div id="todo-container" class="widget-container"></div>
+    </div>
+
+    <section class="pyscript">
+        <script type="py">
+            from datetime import datetime
+            import js
+            from pyodide.ffi import create_proxy
+            from pyscript import document
+            from abc import ABC, abstractmethod
+            from js import alert
+
+            class AbstractWidget(ABC):
+                def __init__(self, element_id):
+                    self.element_id = element_id
+                    self._element = None
+
+                @property
+                def element(self):
+                    if not self._element:
+                        self._element = document.querySelector(f"#{self.element_id}")
+                    return self._element
+
+                @abstractmethod
+                def drawWidget(self):
+                    pass
+
+
+            class WidgetContainer:
+                def __init__(self, widget_class, container_id):
+                    main_container = document.querySelector(f"#{container_id}")
+                    if not main_container:
+                        raise ValueError(f"Container with id '{container_id}' not found.")
+
+                    self.container = document.createElement("div")
+                    self.container.id = f"container_{widget_class.__name__}"
+
+                    main_container.appendChild(self.container)
+
+                    self.widget = widget_class(self.container.id)
+                    self.widget.drawWidget()
+
+
+            class AnimationWidget(AbstractWidget):
+                def __init__(self, element_id):
+                    super().__init__(element_id)
+                    self.counter = 1
+                    self.interval = None
+
+                def on_click(self, event):
+                    if self.button.innerText == "Pause":
+                        self.button.innerText = "Play"
+                        js.clearInterval(self.interval)
+                    else:
+                        self.button.innerText = "Pause"
+                        on_setInterval = create_proxy(self.on_setInterval)
+                        self.interval = js.setInterval(on_setInterval, 500)
+
+                def on_setInterval(self):
+                    self.counter = (self.counter % 9) + 1  # Loops from frame-1 to frame-9
+                    self.image.src = f"images/frame-{self.counter}.png"
+
+                def drawWidget(self):
+                    self.image = document.createElement("img")
+                    self.image.src = "images/frame-1.png"
+                    self.element.appendChild(self.image)
+
+                    self.button = document.createElement("button")
+                    self.button.innerText = "Play"
+                    self.button.onclick = create_proxy(self.on_click)
+                    self.element.appendChild(self.button)
+
+
+            class TodoList(AbstractWidget):
+                def __init__(self, element_id):
+                    super().__init__(element_id)
+                    self.add_sound = document.createElement("audio")
+                    self.add_sound.src = "sounds/Wah.wav"  # Plays when adding a task
+
+                    self.clear_sound = document.createElement("audio")
+                    self.clear_sound.src = "sounds/gunshot.wav"  # Plays when clearing all tasks
+
+                    self.todos = set()
+
+                def drawWidget(self):
+                    self.input = document.createElement("input")
+                    self.input.type = "text"
+                    self.input.placeholder = "Add a new todo"
+                    self.element.appendChild(self.input)
+
+                    self.add_button = document.createElement("button")
+                    self.add_button.innerText = "Add"
+                    self.add_button.onclick = create_proxy(self.add_todo)
+                    self.element.appendChild(self.add_button)
+
+                    self.clear_button = document.createElement("button")
+                    self.clear_button.innerText = "Clear"
+                    self.clear_button.onclick = create_proxy(self.clear_todos)
+                    self.element.appendChild(self.clear_button)
+
+                    self.todo_list = document.createElement("ul")
+                    self.element.appendChild(self.todo_list)
+
+                    self.element.appendChild(self.add_sound)
+                    self.element.appendChild(self.clear_sound)
+
+                def add_todo(self, event):
+                    todo_text = self.input.value.strip().lower()
+                    if todo_text and todo_text not in self.todos:
+                        self.todos.add(todo_text)
+                        li = document.createElement("li")
+                        li.innerText = self.input.value.strip()
+                        li.onclick = create_proxy(self.delete_todo)
+                        self.todo_list.appendChild(li)
+                        self.add_sound.play()  # Play add sound
+                        self.input.value = ""
+                    elif todo_text in self.todos:
+                        alert("This todo is already in the list!")
+
+                def delete_todo(self, event):
+                    todo_text = event.target.innerText.strip().lower()
+                    if todo_text in self.todos:
+                        self.todos.remove(todo_text)
+                    event.target.remove()
+
+                def clear_todos(self, event):
+                    if self.todos:
+                        self.clear_sound.play()  # Play clear sound
+                    self.todos.clear()
+                    self.todo_list.innerHTML = ""
+
+
+            if __name__ == "__main__":
+                WidgetContainer(AnimationWidget, "animation-container")
+                WidgetContainer(TodoList, "todo-container")
+
+        </script>
+    </section>
+</body>
+
+</html>
