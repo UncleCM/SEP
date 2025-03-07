@@ -30,6 +30,8 @@ class TestBinSearch(unittest.TestCase):
         index = binsearch(data, key)
         self.assertIn(index, range(len(data)))
         self.assertEqual(data[index], key)
-    
+
+
 if __name__ == "__main__":
     unittest.main()
+
